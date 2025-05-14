@@ -1,4 +1,3 @@
-// src/pages/PostPage.jsx
 import { useParams } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import useFetch from '../hooks/useFetch';

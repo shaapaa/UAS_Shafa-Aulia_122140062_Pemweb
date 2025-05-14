@@ -6,7 +6,7 @@ import Pagination from '../components/Pagination';
 import SkeletonCard from '../components/SkeletonCard';
 
 const ITEMS_PER_PAGE = 9;
-const API_URL = 'http://localhost:6543/posts'; // sesuaikan dengan backend-mu
+const API_URL = 'http://localhost:6543/posts'; // sesuaikan dengan backend nnti
 
 export default function Home() {
   // Panggil useFetch langsung dengan URL
