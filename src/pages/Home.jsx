@@ -1,26 +1,37 @@
-import { useState, useMemo } from 'react';
-import useFetch from '../hooks/useFetch';
+import { useState, useMemo, useEffect } from 'react';
+// Hapus useFetch
+// import useFetch from '../hooks/useFetch';
 import SearchBar from '../components/SearchBar';
 import PostList from '../components/PostList';
 import Pagination from '../components/Pagination';
 import SkeletonCard from '../components/SkeletonCard';
 
 const ITEMS_PER_PAGE = 9;
-const API_URL = 'http://localhost:6543/posts'; // sesuaikan dengan backend nnti
 
 export default function Home() {
-  // Panggil useFetch langsung dengan URL
-  const { data: posts, loading, error } = useFetch(API_URL);
-
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
 
-  const handleSearch = () => {
-    setPage(1);
-  };
+  useEffect(() => {
+    // Simulasi data dummy
+    const dummyPosts = Array.from({ length: 20 }, (_, i) => ({
+      id: i + 1,
+      title: `Post ${i + 1}`,
+      body: `This is post number ${i + 1}`,
+      tags: ['demo', 'test'],
+    }));
+    setTimeout(() => {
+      setPosts(dummyPosts);
+      setLoading(false);
+    }, 500);
+  }, []);
+
+  const handleSearch = () => setPage(1);
 
   const filtered = useMemo(() => {
-    if (!posts) return [];
     return posts.filter(p =>
       p.title.toLowerCase().includes(search.toLowerCase()) ||
       p.body.toLowerCase().includes(search.toLowerCase()) ||
@@ -42,17 +53,12 @@ export default function Home() {
   }
 
   if (error) {
-    return (
-      <div className="text-center mt-10 text-red-500">
-        Error loading posts.
-      </div>
-    );
+    return <div className="text-center mt-10 text-red-500">Error loading posts.</div>;
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 bg-[var(--color-skyLight)]">
+    <div className="container mx-auto px-4 py-8 bg-sky-50 min-h-screen">
       <SearchBar
-        className="border-b-2 border-[var(--color-primary)]"
         value={search}
         onChange={setSearch}
         onSearch={handleSearch}
@@ -63,9 +69,9 @@ export default function Home() {
           current={page}
           total={totalPages}
           onPageChange={setPage}
-          className="text-[var(--color-primary)]"
-      />
-   )}
+          className="text-sky-600"
+        />
+      )}
     </div>
   );
 }
