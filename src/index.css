@@ -1,0 +1,7 @@
+@import "tailwindcss";
+
+:root {
+  --color-primary: theme('colors.sky.500');
+  --color-secondary: theme('colors.sky.600');
+  --color-accent: theme('colors.pink.400');
+}
