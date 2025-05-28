@@ -1,23 +1,56 @@
-ITEMS = {}
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    Text,
+    ForeignKey,
+    TIMESTAMP,
+    func
+)
+from sqlalchemy.orm import relationship
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import scoped_session, sessionmaker
 
-def get_all_items():
-    return list(ITEMS.values())
+DBSession = scoped_session(sessionmaker())
+Base = declarative_base()
 
-def get_item(item_id):
-    return ITEMS.get(item_id)
+# class User, Post, Comment tetap sama
 
-def add_item(item):
-    item_id = str(len(ITEMS) + 1)
-    item['id'] = item_id
-    ITEMS[item_id] = item
-    return item
 
-def update_item(item_id, item):
-    if item_id in ITEMS:
-        ITEMS[item_id].update(item)
-        ITEMS[item_id]['id'] = item_id
-        return ITEMS[item_id]
-    return None
+class User(Base):
+    __tablename__ = 'users'
 
-def delete_item(item_id):
-    return ITEMS.pop(item_id, None)
+
+    id = Column(Integer, primary_key=True)
+    username = Column(String(50), unique=True, nullable=False)
+    email = Column(String(100), unique=True, nullable=False)
+    hashed_password = Column(String(255), nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    posts = relationship('Post', back_populates='author', cascade='all, delete-orphan')
+    comments = relationship('Comment', back_populates='user', cascade='all, delete-orphan')
+
+class Post(Base):
+    __tablename__ = 'posts'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    title = Column(String(200), nullable=False)
+    content = Column(Text, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+    updated_at = Column(TIMESTAMP, server_default=func.now(), onupdate=func.now())
+
+    author = relationship('User', back_populates='posts')
+    comments = relationship('Comment', back_populates='post', cascade='all, delete-orphan')
+
+class Comment(Base):
+    __tablename__ = 'comments'
+
+    id = Column(Integer, primary_key=True)
+    post_id = Column(Integer, ForeignKey('posts.id', ondelete='CASCADE'), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    comment_text = Column(Text, nullable=False)
+    created_at = Column(TIMESTAMP, server_default=func.now())
+
+    post = relationship('Post', back_populates='comments')
+    user = relationship('User', back_populates='comments')

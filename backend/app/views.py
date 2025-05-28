@@ -1,45 +1,51 @@
 from pyramid.view import view_config
-from pyramid.httpexceptions import HTTPNotFound, HTTPBadRequest
-from .models import get_all_items, get_item, add_item, update_item, delete_item
+from pyramid.response import Response
+from pyramid.security import remember, forget
+from pyramid.httpexceptions import HTTPFound
+from .models import DBSession, User
+from passlib.hash import bcrypt
 
-@view_config(route_name='items', request_method='GET', permission='view', renderer='json')
-def list_items(request):
-    return get_all_items()
+@view_config(route_name='login', renderer='json', request_method='POST')
+def login_view(request):
+    username = request.json_body.get('username')
+    password = request.json_body.get('password')
+    
+    user = DBSession.query(User).filter_by(username=username).first()
+    if user and bcrypt.verify(password, user.hashed_password):
+        headers = remember(request, user.id)
+        response = Response(json_body={"success": True, "message": "Login berhasil"})
+        response.headers.extend(headers)
+        response.status_code = 200
+        return response
+    
+    return Response(json_body={"success": False, "message": "Username atau password salah"}, status=401)
 
-@view_config(route_name='items', request_method='POST', permission='view', renderer='json')
-def create_item(request):
-    try:
-        data = request.json_body
-        if not data.get('name'):
-            return HTTPBadRequest(json_body={'error': 'Field "name" is required'})
-        return add_item(data)
-    except Exception:
-        return HTTPBadRequest(json_body={'error': 'Invalid JSON'})
+@view_config(route_name='register', renderer='json', request_method='POST')
+def register_view(request):
+    data = request.json_body
+    username = data.get('username')
+    email = data.get('email')
+    password = data.get('password')
 
-@view_config(route_name='item', request_method='GET', permission='view', renderer='json')
-def view_item(request):
-    item_id = request.matchdict['id']
-    item = get_item(item_id)
-    if not item:
-        return HTTPNotFound(json_body={'error': 'Item not found'})
-    return item
+    if not username or not email or not password:
+        return Response(json_body={"success": False, "message": "Field tidak lengkap"}, status=400)
 
-@view_config(route_name='item', request_method='PUT', permission='view', renderer='json')
-def update_item_view(request):
-    item_id = request.matchdict['id']
-    try:
-        data = request.json_body
-        updated = update_item(item_id, data)
-        if not updated:
-            return HTTPNotFound(json_body={'error': 'Item not found'})
-        return updated
-    except Exception:
-        return HTTPBadRequest(json_body={'error': 'Invalid JSON'})
+    if DBSession.query(User).filter_by(username=username).first():
+        return Response(json_body={"success": False, "message": "Username sudah digunakan"}, status=400)
 
-@view_config(route_name='item', request_method='DELETE', permission='view', renderer='json')
-def delete_item_view(request):
-    item_id = request.matchdict['id']
-    deleted = delete_item(item_id)
-    if not deleted:
-        return HTTPNotFound(json_body={'error': 'Item not found'})
-    return {'status': 'deleted'}
+    if DBSession.query(User).filter_by(email=email).first():
+        return Response(json_body={"success": False, "message": "Email sudah digunakan"}, status=400)
+
+    hashed = bcrypt.hash(password)
+    user = User(username=username, email=email, hashed_password=hashed)
+    DBSession.add(user)
+    DBSession.flush()
+
+    return Response(json_body={"success": True, "message": "Registrasi berhasil"}, status=201)
+
+@view_config(route_name='logout', renderer='json', request_method='POST')
+def logout_view(request):
+    headers = forget(request)
+    response = Response(json_body={"success": True, "message": "Logout berhasil"})
+    response.headers.extend(headers)
+    return response
